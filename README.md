@@ -9,8 +9,7 @@ A CLI tool to prepare my nuxt app for staging. It does the following:
 
 ## USAGE
 - clone the repo
-- go build
-- put the executable in your go bin directory
+- https://go.dev/doc/tutorial/compile-install
 
 To see all the command line flags and options
 ```bash
