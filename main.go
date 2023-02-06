@@ -29,6 +29,7 @@ func run(proj, commitMsg, stag string, out io.Writer) error {
 		"git",
 		"Git add: SUCCESS",
 		proj,
+		"",
 		[]string{"add", "."},
 	)
 
@@ -37,6 +38,7 @@ func run(proj, commitMsg, stag string, out io.Writer) error {
 		"git",
 		"Git commit: SUCCESS",
 		proj,
+		"",
 		[]string{"commit", "-m", commitMsg},
 	)
 
@@ -45,6 +47,7 @@ func run(proj, commitMsg, stag string, out io.Writer) error {
 		"npm",
 		"Generating static files: SUCCESS",
 		proj,
+		"",
 		[]string{"run", "generate"},
 	)
 
@@ -53,9 +56,11 @@ func run(proj, commitMsg, stag string, out io.Writer) error {
 		"git",
 		"Git push : SUCCESS",
 		proj,
+		stag,
 		[]string{"push", "-u", "origin", "master"},
 	)
 
+	
 	for _, s := range pipeline {
 		msg, err := s.execute()
 		if err != nil {

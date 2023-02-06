@@ -6,8 +6,11 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strconv"
 	"strings"
+
+	"github.com/Nelwhix/aang/copy"
 )
 
 type step struct {
@@ -16,15 +19,17 @@ type step struct {
 	args []string 
 	message string 
 	proj string 
+	stage string
 }
 
-func newStep(name, exe, message, proj string, args []string) step {
+func newStep(name, exe, message, proj, stage string, args []string) step {
 	return step{
 		name: name,
 		exe: exe,
 		message: message,
 		args: args,
 		proj: proj,
+		stage: stage,
 	}
 }
 
@@ -80,6 +85,15 @@ func (s step) execute() (string, error) {
 
 	if s.name == "Pushing to the Dev repo" {
 		fmt.Fprintln(os.Stdout, out.String())
+		err := copy.CopyDir(filepath.Join(s.proj, "dist"), s.stage)
+
+		if err != nil {
+			return "", &stepErr{
+				step: s.name,
+				msg: "failed to execute",
+				cause: err,
+			}
+		}
 	}
 	
 	return s.message, nil
