@@ -6,11 +6,9 @@ import (
 	"log"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"strconv"
 	"strings"
-
-	"github.com/Nelwhix/aang/copy"
+	"bufio"
 )
 
 type step struct {
@@ -19,17 +17,15 @@ type step struct {
 	args []string 
 	message string 
 	proj string 
-	stage string
 }
 
-func newStep(name, exe, message, proj, stage string, args []string) step {
+func newStep(name, exe, message, proj string, args []string) step {
 	return step{
 		name: name,
 		exe: exe,
 		message: message,
 		args: args,
 		proj: proj,
-		stage: stage,
 	}
 }
 
@@ -39,6 +35,15 @@ func (s step) execute() (string, error) {
 
 	var out bytes.Buffer
 	cmd.Stdout = &out
+	stdout, err := cmd.StdoutPipe()
+
+	if err != nil {
+		return "", &stepErr{
+			step: s.name,
+			msg: "failed to execute",
+			cause: err,
+		}
+	}
 
 	if err := cmd.Run(); err != nil {
 		return "", &stepErr{
@@ -48,10 +53,10 @@ func (s step) execute() (string, error) {
 		}
 	}
 
+	buf := bufio.NewReader(stdout)
+	
 	if s.name == "git commit" {
-		fmt.Fprintln(os.Stdout, out.String())
 		output := strings.Split(out.String(), "")
-		
 		commitSha := strings.Join(output[8:15], "")
 		env := strings.Split(os.Getenv("APP_VERSION"), "")
 		versionNum, _ := strconv.Atoi(strings.Join(env[4:6], "")) 
@@ -80,21 +85,12 @@ func (s step) execute() (string, error) {
 	}
 
 	if s.name == "Generating static files" {
-		fmt.Fprintln(os.Stdout, out.String())
-	}
-
-	if s.name == "Pushing to the Dev repo" {
-		fmt.Fprintln(os.Stdout, out.String())
-		err := copy.CopyDir(filepath.Join(s.proj, "dist"), s.stage)
-
-		if err != nil {
-			return "", &stepErr{
-				step: s.name,
-				msg: "failed to execute",
-				cause: err,
-			}
+		for {
+			output, _, _ := buf.ReadLine()
+			fmt.Fprintln(os.Stdout, string(output))
 		}
+		
 	}
-	
+
 	return s.message, nil
 }

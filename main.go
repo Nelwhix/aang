@@ -9,13 +9,9 @@ import (
 	"log"
 )
 
-func run(proj, commitMsg, stag string, out io.Writer) error {
+func run(proj, commitMsg string, out io.Writer) error {
 	if proj == "" {
 		return fmt.Errorf("project directory is required: %w", ErrValidation)
-	}
-
-	if proj == "" {
-		return fmt.Errorf("staging directory is required: %w", ErrValidation)
 	}
 
 	if commitMsg == "" {
@@ -29,7 +25,6 @@ func run(proj, commitMsg, stag string, out io.Writer) error {
 		"git",
 		"Git add: SUCCESS",
 		proj,
-		"",
 		[]string{"add", "."},
 	)
 
@@ -38,7 +33,6 @@ func run(proj, commitMsg, stag string, out io.Writer) error {
 		"git",
 		"Git commit: SUCCESS",
 		proj,
-		"",
 		[]string{"commit", "-m", commitMsg},
 	)
 
@@ -47,7 +41,6 @@ func run(proj, commitMsg, stag string, out io.Writer) error {
 		"npm",
 		"Generating static files: SUCCESS",
 		proj,
-		"",
 		[]string{"run", "generate"},
 	)
 
@@ -56,11 +49,9 @@ func run(proj, commitMsg, stag string, out io.Writer) error {
 		"git",
 		"Git push : SUCCESS",
 		proj,
-		stag,
 		[]string{"push", "-u", "origin", "master"},
 	)
 
-	
 	for _, s := range pipeline {
 		msg, err := s.execute()
 		if err != nil {
@@ -79,7 +70,6 @@ func run(proj, commitMsg, stag string, out io.Writer) error {
 func main() {
 	proj := flag.String("p", "", "Project directory")
 	msg := flag.String("m", "", "Commit message")
-	stag := flag.String("s", "", "Staging directory")
 	flag.Parse()
 
 	err := godotenv.Load()
@@ -87,7 +77,7 @@ func main() {
 	  log.Fatal("Error loading .env file")
 	}
 
-	if err := run(*proj, *msg, *stag, os.Stdout); err != nil {
+	if err := run(*proj, *msg, os.Stdout); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
