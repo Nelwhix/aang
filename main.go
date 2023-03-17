@@ -1,12 +1,16 @@
 package main
 
 import (
+	"bufio"
 	"flag"
 	"fmt"
 	"io"
-	"os"
-	"github.com/joho/godotenv"
 	"log"
+	"os"
+	"path/filepath"
+	"strconv"
+	"strings"
+	"time"
 )
 
 func run(proj, commitMsg string, out io.Writer) error {
@@ -18,41 +22,33 @@ func run(proj, commitMsg string, out io.Writer) error {
 		return fmt.Errorf("commit message is required: %w", ErrValidation)
 	}
 
-	pipeline := make([]step, 4)
+	f, err := os.Open(filepath.Join(proj, ".aang"))
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer f.Close()
 
-	pipeline[0] = newStep(
-		"git add",
-		"git",
-		"Git add: SUCCESS",
-		proj,
-		[]string{"add", "."},
-	)
+	scanner := bufio.NewScanner(f)
+	var pipeline []step
+	for scanner.Scan() {
+		command := scanner.Text()
+		cmdArray := strings.Split(command, " ")
+		exe := cmdArray[0]
+		pipeline = append(pipeline, newStep(
+			command,
+			exe,
+			command[0:2] + ": SUCCESS",
+			proj,
+			cmdArray[1:],
+		),
+		)
+	}
 
-	pipeline[1] = newStep(
-		"git commit",
-		"git",
-		"Git commit: SUCCESS",
-		proj,
-		[]string{"commit", "-m", commitMsg},
-	)
-
-	pipeline[2] = newStep(
-		"Generating static files",
-		"npm",
-		"Generating static files: SUCCESS",
-		proj,
-		[]string{"run", "generate"},
-	)
-
-	pipeline[3] = newStep(
-		"Pushing to the Dev repo",
-		"git",
-		"Git push : SUCCESS",
-		proj,
-		[]string{"push", "-u", "origin", "master"},
-	)
-
-	for _, s := range pipeline {
+	if err := scanner.Err(); err != nil {
+		log.Fatal(err)
+	}
+	
+	for _, s := range pipeline {		
 		msg, err := s.execute()
 		if err != nil {
 			return err
@@ -68,14 +64,17 @@ func run(proj, commitMsg string, out io.Writer) error {
 }
 
 func main() {
+	flag.Usage = func() {
+		fmt.Fprintf(flag.CommandLine.Output(),
+		"aang-cli v0.0.1-alpha \n")
+		fmt.Fprintf(flag.CommandLine.Output(), "Copyright " + strconv.Itoa(time.Now().Local().Year()) + "\n")
+		fmt.Fprintln(flag.CommandLine.Output(), "Usage information:")
+		flag.PrintDefaults()
+	}
 	proj := flag.String("p", "", "Project directory")
 	msg := flag.String("m", "", "Commit message")
 	flag.Parse()
 
-	err := godotenv.Load()
-	if err != nil {
-	  log.Fatal("Error loading .env file")
-	}
 
 	if err := run(*proj, *msg, os.Stdout); err != nil {
 		fmt.Fprintln(os.Stderr, err)
